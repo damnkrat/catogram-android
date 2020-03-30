@@ -14256,7 +14256,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             }
 
             if (CatogramConfig.useCupertinoLib) {
-                ua.itaysonlab.extras.CupertinoExtras.fromTelegramContextMenu(options, items, icons, getParentActivity(), chatListView, getParentActivity().findViewById(android.R.id.content), chatListView.getChildViewHolder(v), message.isOutOwner(), message.needDrawAvatar(), this::processSelectedOption).createAndShow();
+                ua.itaysonlab.extras.CupertinoExtras.initViewHolder(options, items, icons, getParentActivity(), chatListView, getParentActivity().findViewById(android.R.id.content), chatListView.getChildViewHolder(v), message.isOutOwner(), message.needDrawAvatar(), this::processSelectedOption).createAndShow();
                 return;
             }
 
@@ -16271,15 +16271,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             return;
                         }
                         if (message.isDice()) {
-                            try {
-                                if (currentToast != null) {
-                                    currentToast.cancel();
-                                }
-                            } catch (Exception e) {
-                                FileLog.e(e);
-                            }
-                            currentToast = Toast.makeText(getParentActivity(), LocaleController.getString("DiceInfo", R.string.DiceInfo), Toast.LENGTH_SHORT);
-                            currentToast.show();
+                            undoView.showWithAction(0, chatActivityEnterView.getVisibility() == View.VISIBLE ? UndoView.ACTION_DICE_INFO : UndoView.ACTION_DICE_NO_SEND_INFO, null, null, () -> getSendMessagesHelper().sendMessage("\uD83C\uDFB2", dialog_id, null, null, false, null, null, null, true, 0));
                         } else if (message.isAnimatedEmoji()) {
                             restartSticker(cell);
                         } else if (message.needDrawBluredPreview()) {
