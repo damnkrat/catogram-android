@@ -19,10 +19,12 @@ public class BuildVars {
     public static boolean USE_CLOUD_STRINGS = true;
     public static boolean CHECK_UPDATES = false;
     public static boolean TON_WALLET_STANDALONE = false;
-    public static int BUILD_VERSION = 1910;
-    public static String BUILD_VERSION_STRING = "6.0.0";
+
+    public static int BUILD_VERSION = 1938;
+    public static String BUILD_VERSION_STRING = "6.1.0";
     public static int APP_ID = 324507;
     public static String APP_HASH = "8b18e01437686393a6ab21d1d58fd3ae";
+
     public static String APPCENTER_HASH = "a5b5c4f5-51da-dedc-9918-d9766a22ca7c";
     public static String APPCENTER_HASH_DEBUG = "f9726602-67c9-48d2-b5d0-4761f1c1a8f3";
     //
