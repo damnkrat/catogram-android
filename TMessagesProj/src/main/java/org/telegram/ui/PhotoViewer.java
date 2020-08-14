@@ -3301,6 +3301,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                                         } else {
                                             cell.setText(LocaleController.formatString("DeleteForUser", R.string.DeleteForUser, UserObject.getFirstName(currentUser)), "", false, false);
                                         }
+                                        deleteForAll[0] = true;
+                                        cell.setChecked(deleteForAll[0], true); // Mark "delete for user" as default.
                                         cell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
                                         frameLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
                                         cell.setOnClickListener(v -> {
@@ -8903,6 +8905,21 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             }
             nameTextView.setText("");
             dateTextView.setText("");
+
+            // Show date time for avatars.
+            boolean isIndexInvalid = (switchingToIndex < 0 || switchingToIndex >= avatarsArr.size());
+            if (!avatarsArr.isEmpty() && !isIndexInvalid) {
+                long date = (long) avatarsArr.get(switchingToIndex).date * 1000;
+                if (date > 10000) {
+                    String dateString = LocaleController.formatString(
+                        "formatDateAtTime",
+                        R.string.formatDateAtTime,
+                        LocaleController.getInstance().formatterYear.format(new Date(date)),
+                        LocaleController.getInstance().formatterDay.format(new Date(date)));
+                    dateTextView.setText(dateString);
+                }
+            }
+
             if (canEditAvatar && !avatarsArr.isEmpty()) {
                 menuItem.showSubItem(gallery_menu_edit_avatar);
                 boolean currentSet = isCurrentAvatarSet();
