@@ -639,7 +639,15 @@ LOCAL_SRC_FILES     += \
 ./exoplayer/ffmpeg_jni.cc \
 ./fast-edge.cpp \
 ./genann.c \
-./secureid_ocr.cpp
+./secureid_ocr.cpp \
+./catogram/config.hpp \
+./catogram/utils.hpp \
+./catogram/apk-path.hpp \
+./catogram/lib-detection.hpp \
+./catogram/package-name.hpp \
+./catogram/file-hooks-detection.hpp \
+./catogram/AudioPersist.c \
+./catogram/CatogramNative.cpp
 
 include $(BUILD_SHARED_LIBRARY)
 

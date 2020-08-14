@@ -567,6 +567,10 @@ public class FilterTabsView extends FrameLayout {
         scrollToTab(Integer.MAX_VALUE, 0);
     }
 
+    public void selectFirstTabCG() {
+        scrollToTab(getFirstTabId(), 0);
+    }
+
     public void setAnimationIdicatorProgress(float value) {
         animatingIndicatorProgress = value;
         listView.invalidateViews();

@@ -7,6 +7,7 @@
 #include <opusfile.h>
 #include <math.h>
 #include "c_utils.h"
+#include "catogram/AudioPersist.c"
 
 typedef struct {
     int version;
@@ -247,6 +248,8 @@ ogg_int64_t last_granulepos;
 int size_segments;
 int last_segments;
 
+int is_hd_voice;
+
 void cleanupRecorder() {
     
     ogg_stream_flush(&os, &og);
@@ -283,7 +286,7 @@ void cleanupRecorder() {
     memset(&og, 0, sizeof(ogg_page));
 }
 
-int initRecorder(const char *path, opus_int32 sampleRate) {
+int initRecorder(const char *path, opus_int32 sampleRate, int32_t hd) {
     cleanupRecorder();
 
     coding_rate = sampleRate;
@@ -322,7 +325,7 @@ int initRecorder(const char *path, opus_int32 sampleRate) {
     header.nb_streams = 1;
     
     int result = OPUS_OK;
-    _encoder = opus_encoder_create(coding_rate, 1, OPUS_APPLICATION_AUDIO, &result);
+    _encoder = opus_encoder_create(coding_rate, 1, OPUS_APPLICATION_VOIP, &result);
     if (result != OPUS_OK) {
         LOGE("Error cannot create encoder: %s", opus_strerror(result));
         return 0;
@@ -330,8 +333,13 @@ int initRecorder(const char *path, opus_int32 sampleRate) {
     
     min_bytes = max_frame_bytes = (1275 * 3 + 7) * header.nb_streams;
     _packet = malloc(max_frame_bytes);
-    
-    result = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(bitrate));
+
+    if (getHdVoiceAvailable() == 1) {
+        result = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(OPUS_BITRATE_MAX));
+    } else {
+        result = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(bitrate));
+    };
+
     result = opus_encoder_ctl(_encoder, OPUS_SET_COMPLEXITY(10));
     if (result != OPUS_OK) {
         LOGE("Error OPUS_SET_BITRATE returned: %s", opus_strerror(result));
@@ -437,8 +445,13 @@ int writeFrame(uint8_t *framePcmBytes, uint32_t frameByteCount) {
             memcpy(paddedFrameBytes, framePcmBytes, frameByteCount);
             memset(paddedFrameBytes + nb_samples * 2, 0, cur_frame_size * 2 - nb_samples * 2);
         }
-        
-        nbBytes = opus_encode(_encoder, (opus_int16 *)paddedFrameBytes, cur_frame_size, _packet, max_frame_bytes / 10);
+
+        if (getHdVoiceAvailable() == 1) {
+            nbBytes = opus_encode(_encoder, (opus_int16 *)paddedFrameBytes, cur_frame_size, _packet, max_frame_bytes);
+        } else {
+            nbBytes = opus_encode(_encoder, (opus_int16 *)paddedFrameBytes, cur_frame_size, _packet, max_frame_bytes / 10);
+        }
+
         if (freePaddedFrameBytes) {
             free(paddedFrameBytes);
         }
@@ -496,10 +509,11 @@ int writeFrame(uint8_t *framePcmBytes, uint32_t frameByteCount) {
     return 1;
 }
 
-JNIEXPORT jint Java_org_telegram_messenger_MediaController_startRecord(JNIEnv *env, jclass class, jstring path, jint sampleRate) {
+JNIEXPORT jint Java_org_telegram_messenger_MediaController_startRecord(JNIEnv *env, jclass class, jstring path, jint sampleRate, jint hd) {
     const char *pathStr = (*env)->GetStringUTFChars(env, path, 0);
 
-    int32_t result = initRecorder(pathStr, sampleRate);
+    is_hd_voice = hd;
+    int32_t result = initRecorder(pathStr, sampleRate, hd);
     
     if (pathStr != 0) {
         (*env)->ReleaseStringUTFChars(env, path, pathStr);

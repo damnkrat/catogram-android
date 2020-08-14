@@ -7,6 +7,7 @@ import org.telegram.messenger.ApplicationLoader
 import org.telegram.messenger.MessagesController
 import ua.itaysonlab.catogram.preferences.ktx.boolean
 import ua.itaysonlab.catogram.preferences.ktx.int
+import ua.itaysonlab.catogram.stickerkang.KangBridge
 import ua.itaysonlab.catogram.ui.CatogramToasts
 
 object CatogramConfig {
@@ -58,12 +59,15 @@ object CatogramConfig {
     var forceLeftFab by sharedPreferences.boolean("cg_fab_invertgravity", false)
 
     var newTabs_iconsV2_mode by sharedPreferences.int("cg_tabs_v2", 0)
+    var hqVoice by sharedPreferences.boolean("cg_hq", false)
 
     //var flatChannelStyle by sharedPreferences.boolean("cg_flat_channels", false)
     var flatChannelStyle = true
+    lateinit var kangBridge: KangBridge
 
     init {
         CatogramToasts.init(sharedPreferences)
+        kangBridge = KangBridge()
     }
 
     private fun putBoolean(key: String, value: Boolean) {

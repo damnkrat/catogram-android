@@ -227,6 +227,7 @@ import java.util.regex.Pattern;
 
 import kotlin.Unit;
 import ua.itaysonlab.catogram.CatogramConfig;
+import ua.itaysonlab.catogram.stickerkang.KangBridge;
 import ua.itaysonlab.catogram.translate.TranslateAPI;
 import ua.itaysonlab.catogram.ui.CatogramToasts;
 
@@ -15256,6 +15257,12 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 icons.add(R.drawable.round_translate_24);
             }
 
+            /*if (selectedObject.isSticker() || selectedObject.isAnimatedSticker()) {
+                items.add(LocaleController.getString("CG_KangSticker", R.string.CG_KangSticker));
+                options.add(992);
+                icons.add(R.drawable.menu_saved_cg);
+            }*/
+
             items.add(LocaleController.getString("CG_ToSaved", R.string.CG_ToSaved));
             options.add(991);
             icons.add(R.drawable.menu_saved_cg);
@@ -15701,6 +15708,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             // 990 - translate, 991 - saved
             case 990: {
                 TranslateAPI.callTranslationDialog(selectedObject, (AppCompatActivity) getParentActivity());
+                break;
+            }
+            case 992: {
+                CatogramConfig.INSTANCE.getKangBridge().prepareKang(selectedObject.getDocument());
                 break;
             }
             case 991: {

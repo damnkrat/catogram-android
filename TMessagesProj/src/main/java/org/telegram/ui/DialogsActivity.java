@@ -3275,9 +3275,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else if (actionBar != null && actionBar.isActionModeShowed()) {
             hideActionMode(true);
             return false;
-        } else if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE && !tabsAnimationInProgress && !filterTabsView.isAnimatingIndicator() && filterTabsView.getCurrentTabId() != Integer.MAX_VALUE && !startedTracking) {
-            filterTabsView.selectFirstTab();
-            return false;
+        } else if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE && !tabsAnimationInProgress && !filterTabsView.isAnimatingIndicator() && !startedTracking) {
+            if (CatogramConfig.INSTANCE.getNewTabs_hideAllChats()) {
+                if (filterTabsView.getCurrentTabId() != filterTabsView.getFirstTabId()) {
+                    filterTabsView.selectFirstTabCG();
+                    return false;
+                }
+            } else {
+                if (filterTabsView.getCurrentTabId() != Integer.MAX_VALUE) {
+                    filterTabsView.selectFirstTab();
+                    return false;
+                }
+            }
         } else if (commentView != null && commentView.isPopupShowing()) {
             commentView.hidePopup(true);
             return false;

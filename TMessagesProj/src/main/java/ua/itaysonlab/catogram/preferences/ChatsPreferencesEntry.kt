@@ -6,6 +6,7 @@ import org.telegram.messenger.LocaleController
 import org.telegram.messenger.R
 import org.telegram.messenger.SharedConfig
 import org.telegram.ui.ActionBar.BaseFragment
+import ua.itaysonlab.CatogramNative
 import ua.itaysonlab.catogram.CatogramConfig
 import ua.itaysonlab.catogram.preferences.ktx.*
 import ua.itaysonlab.extras.IconExtras
@@ -106,16 +107,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
                     if (SharedConfig.smoothKeyboard && bf.parentActivity != null) {
                         bf.parentActivity.window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
                     }
-                }
-            }
-
-            switch {
-                title = LocaleController.getString("CG_FlatChannels", R.string.CG_FlatChannels)
-
-                contract({
-                    return@contract CatogramConfig.flatChannelStyle
-                }) {
-                    CatogramConfig.flatChannelStyle = it
                 }
             }
 

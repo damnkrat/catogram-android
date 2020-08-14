@@ -87,9 +87,11 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import ua.itaysonlab.HqVoice;
+
 public class MediaController implements AudioManager.OnAudioFocusChangeListener, NotificationCenter.NotificationCenterDelegate, SensorEventListener {
 
-    private native int startRecord(String path, int sampleRate);
+    private native int startRecord(String path, int sampleRate, int hd);
     private native int writeFrame(ByteBuffer frame, int len);
     private native void stopRecord();
     public static native int isOpusFile(String path);
@@ -513,7 +515,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
     private ArrayList<ByteBuffer> recordBuffers = new ArrayList<>();
     private ByteBuffer fileBuffer;
     public int recordBufferSize = 1280;
-    public int sampleRate = 16000;
+    public int sampleRate = HqVoice.getSampleRate();
     private int sendAfterDone;
     private boolean sendAfterDoneNotify;
     private int sendAfterDoneScheduleDate;
@@ -794,7 +796,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
         recordQueue.postRunnable(() -> {
             try {
-                sampleRate = 16000;
+                sampleRate = HqVoice.getSampleRate();
                 int minBuferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
                 if (minBuferSize <= 0) {
                     minBuferSize = 1280;
@@ -3048,7 +3050,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             recordingAudioFile = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), FileLoader.getAttachFileName(recordingAudio));
 
             try {
-                if (startRecord(recordingAudioFile.getAbsolutePath(), 16000) == 0) {
+                if (startRecord(recordingAudioFile.getAbsolutePath(), HqVoice.getSampleRate(), HqVoice.isEnabled()) == 0) {
                     AndroidUtilities.runOnUIThread(() -> {
                         recordStartRunnable = null;
                         NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.recordStartError, guid);

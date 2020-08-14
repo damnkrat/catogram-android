@@ -110,7 +110,7 @@ import org.telegram.ui.Components.voip.VoIPHelper;
 
 import java.io.ByteArrayOutputStream;
 
-public class VoIPActivity extends AppCompatActivity implements VoIPService.StateListener, NotificationCenter.NotificationCenterDelegate {
+public class VoIPActivity extends Activity implements VoIPService.StateListener, NotificationCenter.NotificationCenterDelegate {
 
     private int currentAccount = -1;
     private static final String TAG = "tg-voip-ui";
@@ -159,7 +159,7 @@ public class VoIPActivity extends AppCompatActivity implements VoIPService.State
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
         super.onCreate(savedInstanceState);
 
-        getSupportActionBar().hide();
+        //getSupportActionBar().hide();
 
         if (VoIPService.getSharedInstance() == null) {
             finish();

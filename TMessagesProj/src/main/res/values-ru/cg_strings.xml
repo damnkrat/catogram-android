@@ -192,4 +192,7 @@
     <string name="CG_FlatChannels">Плоская лента каналов</string>
     <string name="CG_IgnoreBlacklist">Игнорировать пользователей в ЧС</string>
     <string name="CG_IgnoreBlacklist_Desc">их сообщения будут скрыты</string>
+
+    <string name="CG_HQVoice">HQ-запись голосовых сообщений</string>
+    <string name="CG_HQVoice_Desc">Может быть нестабильно. Также потребляет больше данных.</string>
 </resources>
