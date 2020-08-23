@@ -5,19 +5,11 @@ import ua.itaysonlab.CatogramNative.isHqAvailable
 object HqVoice {
     @JvmStatic
     fun getSampleRate(): Int {
-        return if (isHqAvailable()) {
-            48000
-        } else {
-            16000
-        }
+        return 48000
     }
 
     @JvmStatic
     fun isEnabled(): Int {
-        return if (isHqAvailable()) {
-            1
-        } else {
-            0
-        }
+        return 1
     }
 }

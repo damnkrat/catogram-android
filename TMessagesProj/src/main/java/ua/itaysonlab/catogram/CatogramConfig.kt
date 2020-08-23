@@ -44,7 +44,7 @@ object CatogramConfig {
     var newTabs_hideAllChats by sharedPreferences.boolean("cg_ntallchats", false)
     var forceSVDrawer by sharedPreferences.boolean("cg_sv_drawer", false)
 
-    var redesign_messageOption by sharedPreferences.int("cg_messageOption", 3)
+    var redesign_messageOption by sharedPreferences.int("cg_messageOption", 0)
     var redesign_iconOption by sharedPreferences.int("cg_iconoption", 0)
     var redesign_SlideDrawer by sharedPreferences.boolean("cg_redesign_slidedrawer", false)
 
@@ -52,7 +52,7 @@ object CatogramConfig {
 
     var useCupertinoLib by sharedPreferences.boolean("advanced_cupertino", false)
     var useTgxMenuSlide by sharedPreferences.boolean("advanced_tgxslide", false)
-    var useTgxMenuSlideSheet by sharedPreferences.boolean("advanced_tgxslide_sheet", true)
+    var useTgxMenuSlideSheet by sharedPreferences.boolean("advanced_tgxslide_sheet", false)
 
     var forwardNoAuthorship by sharedPreferences.boolean("cg_forward_no_authorship", false)
     var msgForwardDate by sharedPreferences.boolean("cg_msg_fwd_date", false)
