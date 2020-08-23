@@ -3,13 +3,11 @@ package org.telegram.ui.Components.voip;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
-import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -131,8 +129,12 @@ public class VoIPWindowView extends FrameLayout {
             VoIPFragment.clearInstance();
 
             if (lockOnScreen) {
-                WindowManager wm = (WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
-                wm.removeView(VoIPWindowView.this);
+                try {
+                    WindowManager wm = (WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
+                    wm.removeView(VoIPWindowView.this);
+                } catch (Exception ignore) {
+
+                }
             } else {
                 animationIndex = NotificationCenter.getInstance(UserConfig.selectedAccount).setAnimationInProgress(animationIndex, null);
                 animate().translationX(getMeasuredWidth()).setListener(new AnimatorListenerAdapter() {
@@ -141,9 +143,14 @@ public class VoIPWindowView extends FrameLayout {
                         NotificationCenter.getInstance(UserConfig.selectedAccount).onAnimationFinish(animationIndex);
                         if (getParent() != null) {
                             activity.setRequestedOrientation(orientationBefore);
+
                             WindowManager wm = (WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
                             setVisibility(View.GONE);
-                            wm.removeView(VoIPWindowView.this);
+                            try {
+                                wm.removeView(VoIPWindowView.this);
+                            } catch (Exception ignore) {
+
+                            }
                         }
                     }
                 }).setDuration(animDuration).setInterpolator(CubicBezierInterpolator.DEFAULT).start();

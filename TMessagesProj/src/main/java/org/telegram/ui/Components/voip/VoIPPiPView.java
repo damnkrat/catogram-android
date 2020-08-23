@@ -34,6 +34,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.voip.Instance;
 import org.telegram.messenger.voip.VideoCameraCapturer;
@@ -44,7 +45,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.VoIPFragment;
 
-public class VoIPPiPView implements VoIPBaseService.StateListener {
+public class VoIPPiPView implements VoIPBaseService.StateListener, NotificationCenter.NotificationCenterDelegate {
 
     public final static int ANIMATION_ENTER_TYPE_SCALE = 0;
     public final static int ANIMATION_ENTER_TYPE_TRANSITION = 1;
@@ -134,7 +135,7 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
     };
 
     public static void show(Activity activity, int parentWidth, int parentHeight, int animationType) {
-        if (instance != null) {
+        if (instance != null || VideoCameraCapturer.eglBase == null) {
             return;
         }
         WindowManager.LayoutParams windowLayoutParams = createWindowLayoutParams(activity, parentWidth, parentHeight, SCALE_NORMAL);
@@ -148,6 +149,7 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
         float y = preferences.getFloat("relativeY", 0f);
 
         instance.setRelativePosition(x, y);
+        NotificationCenter.getGlobalInstance().addObserver(instance, NotificationCenter.didEndCall);
         wm.addView(instance.windowView, windowLayoutParams);
 
         instance.currentUserTextureView.renderer.init(VideoCameraCapturer.eglBase.getEglBaseContext(), null);
@@ -201,7 +203,8 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
         windowLayoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED |
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
 
         return windowLayoutParams;
     }
@@ -323,6 +326,8 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
                 VoIPService service = VoIPService.getSharedInstance();
                 if (service != null) {
                     service.hangUp();
+                } else {
+                    finish();
                 }
             });
 
@@ -352,23 +357,24 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
         if (service != null) {
             service.unregisterStateListener(this);
         }
-        floatingView.getRelativePosition(point);
-        float x = Math.min(1f, Math.max(0f, point[0]));
-        float y = Math.min(1f, Math.max(0f, point[1]));
-        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("voippipconfig", Context.MODE_PRIVATE);
-        preferences.edit()
-                .putFloat("relativeX", x)
-                .putFloat("relativeY", y)
-                .apply();
         windowView.setVisibility(View.GONE);
         if (windowView.getParent() != null) {
+            floatingView.getRelativePosition(point);
+            float x = Math.min(1f, Math.max(0f, point[0]));
+            float y = Math.min(1f, Math.max(0f, point[1]));
+            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("voippipconfig", Context.MODE_PRIVATE);
+            preferences.edit()
+                    .putFloat("relativeX", x)
+                    .putFloat("relativeY", y)
+                    .apply();
+
             try {
                 windowManager.removeView(windowView);
             } catch (Throwable e) {
                 FileLog.e(e);
             }
         }
-        instance = null;
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didEndCall);
     }
 
     @Override
@@ -473,6 +479,13 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
         VoIPService service = VoIPService.getSharedInstance();
         if (service != null && service.getVideoState() == Instance.VIDEO_STATE_PAUSED) {
             service.setVideoState(Instance.VIDEO_STATE_ACTIVE);
+        }
+    }
+
+    @Override
+    public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.didEndCall) {
+            finish();
         }
     }
 
@@ -761,12 +774,7 @@ public class VoIPPiPView implements VoIPBaseService.StateListener {
                                 return;
                             }
                             expandedInstance.windowView.setAlpha(0);
-                            try {
-                                windowManager.removeView(expandedInstance.windowView);
-                            } catch (Throwable e) {
-                                FileLog.e(e);
-                            }
-                            expandedInstance = null;
+                            expandedInstance.finishInternal();
                             expandedAnimationInProgress = false;
                             if (expanded) {
                                 AndroidUtilities.runOnUIThread(collapseRunnable, 3000);

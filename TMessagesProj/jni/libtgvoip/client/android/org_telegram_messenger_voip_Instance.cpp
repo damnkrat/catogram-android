@@ -5,6 +5,9 @@
 #include <VideoCapturerInterface.h>
 #include <platform/android/AndroidInterface.h>
 #include <platform/android/AndroidContext.h>
+#include <rtc_base/ssl_adapter.h>
+#include <modules/utility/include/jvm_android.h>
+#include <sdk/android/native_api/base/init.h>
 
 #include "pc/video_track.h"
 #include "legacy/InstanceImplLegacy.h"
@@ -66,10 +69,16 @@ struct InstanceHolder {
     std::unique_ptr<Instance> nativeInstance;
     jobject javaInstance;
     std::shared_ptr<tgcalls::VideoCaptureInterface> _videoCapture;
+    std::shared_ptr<PlatformContext> _platformContext;
 };
 
+jclass TrafficStatsClass;
+jclass FinalStateClass;
+jclass NativeInstanceClass;
+jmethodID FinalStateInitMethod;
+
 jlong getInstanceHolderId(JNIEnv *env, jobject obj) {
-    return env->GetLongField(obj, env->GetFieldID(env->GetObjectClass(obj), "nativePtr", "J"));
+    return env->GetLongField(obj, env->GetFieldID(NativeInstanceClass, "nativePtr", "J"));
 }
 
 InstanceHolder *getInstanceHolder(JNIEnv *env, jobject obj) {
@@ -197,9 +206,8 @@ jint asJavaState(const State &state) {
 }
 
 jobject asJavaTrafficStats(JNIEnv *env, const TrafficStats &trafficStats) {
-    jclass clazz = env->FindClass("org/telegram/messenger/voip/Instance$TrafficStats");
-    jmethodID initMethodId = env->GetMethodID(clazz, "<init>", "(JJJJ)V");
-    return env->NewObject(clazz, initMethodId, (jlong) trafficStats.bytesSentWifi, (jlong) trafficStats.bytesReceivedWifi, (jlong) trafficStats.bytesSentMobile, (jlong) trafficStats.bytesReceivedMobile);
+    jmethodID initMethodId = env->GetMethodID(TrafficStatsClass, "<init>", "(JJJJ)V");
+    return env->NewObject(TrafficStatsClass, initMethodId, (jlong) trafficStats.bytesSentWifi, (jlong) trafficStats.bytesReceivedWifi, (jlong) trafficStats.bytesSentMobile, (jlong) trafficStats.bytesReceivedMobile);
 }
 
 jobject asJavaFinalState(JNIEnv *env, const FinalState &finalState) {
@@ -207,14 +215,33 @@ jobject asJavaFinalState(JNIEnv *env, const FinalState &finalState) {
     jstring debugLog = env->NewStringUTF(finalState.debugLog.c_str());
     jobject trafficStats = asJavaTrafficStats(env, finalState.trafficStats);
     auto isRatingSuggested = static_cast<jboolean>(finalState.isRatingSuggested);
-    jclass finalStateClass = env->FindClass("org/telegram/messenger/voip/Instance$FinalState");
-    jmethodID finalStateInitMethodId = env->GetMethodID(finalStateClass, "<init>", "([BLjava/lang/String;Lorg/telegram/messenger/voip/Instance$TrafficStats;Z)V");
-    return env->NewObject(finalStateClass, finalStateInitMethodId, persistentState, debugLog, trafficStats, isRatingSuggested);
+    return env->NewObject(FinalStateClass, FinalStateInitMethod, persistentState, debugLog, trafficStats, isRatingSuggested);
 }
 
 extern "C" {
 
+bool webrtcLoaded = false;
+
+void initWebRTC(JNIEnv *env) {
+    if (webrtcLoaded) {
+        return;
+    }
+    JavaVM* vm;
+    env->GetJavaVM(&vm);
+    webrtc::InitAndroid(vm);
+    webrtc::JVM::Initialize(vm);
+    rtc::InitializeSSL();
+    webrtcLoaded = true;
+
+    NativeInstanceClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass("org/telegram/messenger/voip/NativeInstance")));
+    TrafficStatsClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass("org/telegram/messenger/voip/Instance$TrafficStats")));
+    FinalStateClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass("org/telegram/messenger/voip/Instance$FinalState")));
+    FinalStateInitMethod = env->GetMethodID(FinalStateClass, "<init>", "([BLjava/lang/String;Lorg/telegram/messenger/voip/Instance$TrafficStats;Z)V");
+}
+
 JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeNativeInstance(JNIEnv *env, jclass clazz, jstring version, jobject instanceObj, jobject config, jstring persistentStateFilePath, jobjectArray endpoints, jobject proxyClass, jint networkType, jobject encryptionKey, jobject remoteSink, jlong videoCapturer, jfloat aspectRatio) {
+    initWebRTC(env);
+
     JavaObject configObject(env, config);
     JavaObject encryptionKeyObject(env, encryptionKey);
     std::string v = tgvoip::jni::JavaStringToStdString(env, version);
@@ -228,6 +255,8 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeNati
     jobject globalRef = env->NewGlobalRef(instanceObj);
     std::shared_ptr<VideoCaptureInterface> videoCapture = videoCapturer ? std::shared_ptr<VideoCaptureInterface>(reinterpret_cast<VideoCaptureInterface *>(videoCapturer)) : nullptr;
 
+    std::shared_ptr<PlatformContext> platformContext = videoCapture ? videoCapture->getPlatformContext() : std::make_shared<AndroidContext>(env);
+
     Descriptor descriptor = {
             .config = Config{
                     .initializationTimeout = configObject.getDoubleField("initializationTimeout"),
@@ -240,7 +269,7 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeNati
                     .enableVolumeControl = true,
                     .logPath = tgvoip::jni::JavaStringToStdString(env, configObject.getStringField("logPath")),
                     .maxApiLayer = configObject.getIntField("maxApiLayer"),
-                    /*.preferredAspectRatio = aspectRatio*/
+                    .preferredAspectRatio = aspectRatio
             },
             .encryptionKey = EncryptionKey(
                     std::move(encryptionKeyValue),
@@ -249,23 +278,25 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeNati
             .stateUpdated = [globalRef](State state) {
                 jint javaState = asJavaState(state);
                 tgvoip::jni::DoWithJNI([globalRef, javaState](JNIEnv *env) {
-                    env->CallVoidMethod(globalRef, env->GetMethodID(env->GetObjectClass(globalRef), "onStateUpdated", "(I)V"), javaState);
+                    env->CallVoidMethod(globalRef, env->GetMethodID(NativeInstanceClass, "onStateUpdated", "(I)V"), javaState);
                 });
             },
+            .platformContext = platformContext,
             .signalBarsUpdated = [globalRef](int count) {
                 tgvoip::jni::DoWithJNI([globalRef, count](JNIEnv *env) {
-                    env->CallVoidMethod(globalRef, env->GetMethodID(env->GetObjectClass(globalRef), "onSignalBarsUpdated", "(I)V"), count);
+                    env->CallVoidMethod(globalRef, env->GetMethodID(NativeInstanceClass, "onSignalBarsUpdated", "(I)V"), count);
                 });
             },
             .remoteMediaStateUpdated = [globalRef](AudioState audioState, VideoState videoState) {
                 tgvoip::jni::DoWithJNI([globalRef, audioState, videoState](JNIEnv *env) {
-                    env->CallVoidMethod(globalRef, env->GetMethodID(env->GetObjectClass(globalRef), "onRemoteMediaStateUpdated", "(II)V"), audioState, videoState);
+                    env->CallVoidMethod(globalRef, env->GetMethodID(NativeInstanceClass, "onRemoteMediaStateUpdated", "(II)V"), (jint) audioState, (jint )videoState);
                 });
             },
             .signalingDataEmitted = [globalRef](const std::vector<uint8_t> &data) {
                 tgvoip::jni::DoWithJNI([globalRef, data](JNIEnv *env) {
                     jbyteArray arr = copyVectorToJavaByteArray(env, data);
-                    env->CallVoidMethod(globalRef, env->GetMethodID(env->GetObjectClass(globalRef), "onSignalingData", "([B)V"), arr);
+                    env->CallVoidMethod(globalRef, env->GetMethodID(NativeInstanceClass, "onSignalingData", "([B)V"), arr);
+                    env->DeleteLocalRef(arr);
                 });
             },
     };
@@ -312,7 +343,9 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeNati
     holder->nativeInstance = tgcalls::Meta::Create(v, std::move(descriptor));
     holder->javaInstance = globalRef;
     holder->_videoCapture = videoCapture;
+    holder->_platformContext = platformContext;
     holder->nativeInstance->setIncomingVideoOutput(webrtc::JavaToNativeVideoSink(env, remoteSink));
+    holder->nativeInstance->setNetworkType(parseNetworkType(networkType));
     return reinterpret_cast<jlong>(holder);
 }
 
@@ -365,22 +398,20 @@ JNIEXPORT jbyteArray JNICALL Java_org_telegram_messenger_voip_NativeInstance_get
     return copyVectorToJavaByteArray(env, getInstance(env, obj)->getPersistentState().value);
 }
 
-JNIEXPORT jobject JNICALL Java_org_telegram_messenger_voip_NativeInstance_stop(JNIEnv *env, jobject obj) {
+JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopNative(JNIEnv *env, jobject obj) {
     InstanceHolder *instance = getInstanceHolder(env, obj);
-    FinalState finalState = instance->nativeInstance->stop();
-
-    // saving persistent state
-    const std::string &path = tgvoip::jni::JavaStringToStdString(env, JavaObject(env, obj).getStringField("persistentStateFilePath"));
-    savePersistentState(path.c_str(), finalState.persistentState);
-
-    // clean
-    env->DeleteGlobalRef(instance->javaInstance);
-    delete instance;
-
-    return asJavaFinalState(env, finalState);
+    instance->nativeInstance->stop([instance](FinalState finalState) {
+        JNIEnv *env = webrtc::AttachCurrentThreadIfNeeded();
+        const std::string &path = tgvoip::jni::JavaStringToStdString(env, JavaObject(env, instance->javaInstance).getStringField("persistentStateFilePath"));
+        savePersistentState(path.c_str(), finalState.persistentState);
+        env->CallVoidMethod(instance->javaInstance, env->GetMethodID(NativeInstanceClass, "onStop", "(Lorg/telegram/messenger/voip/Instance$FinalState;)V"), asJavaFinalState(env, finalState));
+        env->DeleteGlobalRef(instance->javaInstance);
+        delete instance;
+    });
 }
 
 JNIEXPORT long JNICALL Java_org_telegram_messenger_voip_NativeInstance_createVideoCapturer(JNIEnv *env, jclass clazz, jobject localSink) {
+    initWebRTC(env);
     std::unique_ptr<VideoCaptureInterface> capture = tgcalls::VideoCaptureInterface::Create(std::make_shared<AndroidContext>(env));
     capture->setOutput(webrtc::JavaToNativeVideoSink(env, localSink));
     capture->setState(VideoState::Active);
@@ -423,7 +454,7 @@ JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setupOutg
     if (instance->_videoCapture) {
         return;
     }
-    instance->_videoCapture = tgcalls::VideoCaptureInterface::Create(std::make_shared<AndroidContext>(env));
+    instance->_videoCapture = tgcalls::VideoCaptureInterface::Create(instance->_platformContext);
     instance->_videoCapture->setOutput(webrtc::JavaToNativeVideoSink(env, localSink));
     instance->_videoCapture->setState(VideoState::Active);
     instance->nativeInstance->setVideoCapture(instance->_videoCapture);

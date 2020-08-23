@@ -290,6 +290,8 @@ public class MessagesController extends BaseController implements NotificationCe
     private SharedPreferences mainPreferences;
     private SharedPreferences emojiPreferences;
 
+    public volatile boolean ignoreSetOnline;
+
     public static class FaqSearchResult {
 
         public String title;
@@ -2068,6 +2070,7 @@ public class MessagesController extends BaseController implements NotificationCe
         suggestedFilters.clear();
         gettingAppChangelog = false;
         dialogFiltersLoaded = false;
+        ignoreSetOnline = false;
 
         Utilities.stageQueue.postRunnable(() -> {
             readTasks.clear();
@@ -4347,7 +4350,7 @@ public class MessagesController extends BaseController implements NotificationCe
         checkReadTasks();
 
         if (getUserConfig().isClientActivated()) {
-            if (getConnectionsManager().getPauseTime() == 0 && ApplicationLoader.isScreenOn && !ApplicationLoader.mainInterfacePausedStageQueue) {
+            if (!ignoreSetOnline && getConnectionsManager().getPauseTime() == 0 && ApplicationLoader.isScreenOn && !ApplicationLoader.mainInterfacePausedStageQueue) {
                 if (ApplicationLoader.mainInterfacePausedStageQueueTime != 0 && Math.abs(ApplicationLoader.mainInterfacePausedStageQueueTime - System.currentTimeMillis()) > 1000) {
                     if (statusSettingState != 1 && (lastStatusUpdateTime == 0 || Math.abs(System.currentTimeMillis() - lastStatusUpdateTime) >= 55000 || offlineSent)) {
                         statusSettingState = 1;
@@ -11751,10 +11754,15 @@ public class MessagesController extends BaseController implements NotificationCe
                                 }
                                 continue;
                             }
+                            boolean notificationsDisabled = false;
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !NotificationManagerCompat.from(ApplicationLoader.applicationContext).areNotificationsEnabled()) {
-                                if (BuildVars.LOGS_ENABLED)
-                                    FileLog.d("Ignoring incoming call because notifications are disabled in system");
-                                continue;
+                                notificationsDisabled = true;
+                                if (ApplicationLoader.mainInterfacePaused || !ApplicationLoader.isScreenOn) {
+                                    if (BuildVars.LOGS_ENABLED) {
+                                        FileLog.d("Ignoring incoming call because notifications are disabled in system");
+                                    }
+                                    continue;
+                                }
                             }
                             TelephonyManager tm = (TelephonyManager) ApplicationLoader.applicationContext.getSystemService(Context.TELEPHONY_SERVICE);
                             if (svc != null || VoIPService.callIShouldHavePutIntoIntent != null || tm.getCallState() != TelephonyManager.CALL_STATE_IDLE) {
@@ -11782,11 +11790,15 @@ public class MessagesController extends BaseController implements NotificationCe
                             intent.putExtra("is_outgoing", false);
                             intent.putExtra("user_id", call.participant_id == getUserConfig().getClientUserId() ? call.admin_id : call.participant_id);
                             intent.putExtra("account", currentAccount);
+                            intent.putExtra("notifications_disabled", notificationsDisabled);
                             try {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                if (!notificationsDisabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                     ApplicationLoader.applicationContext.startForegroundService(intent);
                                 } else {
                                     ApplicationLoader.applicationContext.startService(intent);
+                                }
+                                if (ApplicationLoader.mainInterfacePaused || !ApplicationLoader.isScreenOn) {
+                                    ignoreSetOnline = true;
                                 }
                             } catch (Throwable e) {
                                 FileLog.e(e);

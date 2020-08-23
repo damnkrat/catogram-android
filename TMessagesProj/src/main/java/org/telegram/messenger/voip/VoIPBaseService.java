@@ -62,6 +62,7 @@ import android.view.View;
 import android.widget.RemoteViews;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ContactsController;
@@ -126,6 +127,7 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 	protected Notification ongoingCallNotification;
 	protected NativeInstance tgVoip;
 	protected boolean isVideoAvailable;
+	protected boolean notificationsDisabled;
 	protected boolean switchingCamera;
 	protected boolean isFrontFaceCamera = true;
 	protected String lastError;
@@ -158,7 +160,7 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 	protected long callStartTime;
 	protected boolean playingSound;
 	protected boolean isOutgoing;
-	protected boolean videoCall;
+	public boolean videoCall;
 	protected long videoCapturer;
 	protected Runnable timeoutRunnable;
 
@@ -370,10 +372,10 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 					.setTitle(LocaleController.getString("VoipOutputDevices", R.string.VoipOutputDevices), true)
 					.setItems(new CharSequence[]{
 									LocaleController.getString("VoipAudioRoutingSpeaker", R.string.VoipAudioRoutingSpeaker),
-									LocaleController.getString("VoipAudioRoutingEarpiece", R.string.VoipAudioRoutingEarpiece),
+									isHeadsetPlugged ? LocaleController.getString("VoipAudioRoutingHeadset", R.string.VoipAudioRoutingHeadset) : LocaleController.getString("VoipAudioRoutingEarpiece", R.string.VoipAudioRoutingEarpiece),
 									currentBluetoothDeviceName != null ? currentBluetoothDeviceName : LocaleController.getString("VoipAudioRoutingBluetooth", R.string.VoipAudioRoutingBluetooth)},
 							new int[]{R.drawable.calls_menu_speaker,
-									R.drawable.calls_menu_phone,
+									isHeadsetPlugged ? R.drawable.calls_menu_headset : R.drawable.calls_menu_phone,
 									R.drawable.calls_menu_bluetooth}, (dialog, which) -> {
 								if (getSharedInstance() == null) {
 									return;
@@ -577,19 +579,24 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
 		boolean needRing = am.getRingerMode() != AudioManager.RINGER_MODE_SILENT;
 		if (needRing) {
-			if (!USE_CONNECTION_SERVICE) {
-				am.requestAudioFocus(this, AudioManager.STREAM_RING, AudioManager.AUDIOFOCUS_GAIN);
-			}
 			ringtonePlayer = new MediaPlayer();
 			ringtonePlayer.setOnPreparedListener(mediaPlayer -> ringtonePlayer.start());
 			ringtonePlayer.setLooping(true);
-			ringtonePlayer.setAudioStreamType(AudioManager.STREAM_RING);
+			if (isHeadsetPlugged) {
+				ringtonePlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+			} else {
+				ringtonePlayer.setAudioStreamType(AudioManager.STREAM_RING);
+				if (!USE_CONNECTION_SERVICE) {
+					am.requestAudioFocus(this, AudioManager.STREAM_RING, AudioManager.AUDIOFOCUS_GAIN);
+				}
+			}
 			try {
 				String notificationUri;
-				if (prefs.getBoolean("custom_" + chatID, false))
+				if (prefs.getBoolean("custom_" + chatID, false)) {
 					notificationUri = prefs.getString("ringtone_path_" + chatID, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE).toString());
-				else
+				} else {
 					notificationUri = prefs.getString("CallsRingtonePath", RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE).toString());
+				}
 				ringtonePlayer.setDataSource(this, Uri.parse(notificationUri));
 				ringtonePlayer.prepareAsync();
 			} catch (Exception e) {
@@ -625,6 +632,9 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		}
 		stopForeground(true);
 		stopRinging();
+		if (ApplicationLoader.mainInterfacePaused || !ApplicationLoader.isScreenOn) {
+			MessagesController.getInstance(currentAccount).ignoreSetOnline = false;
+		}
 		NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.appDidLogout);
 		SensorManager sm = (SensorManager) getSystemService(SENSOR_SERVICE);
 		Sensor proximity = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
@@ -643,10 +653,11 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		sharedInstance = null;
 		AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didEndCall));
 		if (tgVoip != null) {
-			updateTrafficStats();
 			StatsController.getInstance(currentAccount).incrementTotalCallsTime(getStatsNetworkType(), (int) (getCallDuration() / 1000) % 5);
 			onTgVoipPreStop();
-			onTgVoipStop(tgVoip.stop());
+			Instance.FinalState state = tgVoip.stop();
+			updateTrafficStats(state.trafficStats);
+			onTgVoipStop(state);
 			prevTrafficStats = null;
 			callStartTime = 0;
 			tgVoip = null;
@@ -796,8 +807,10 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		}
 	}
 
-	protected void updateTrafficStats() {
-		final Instance.TrafficStats trafficStats = tgVoip.getTrafficStats();
+	protected void updateTrafficStats(Instance.TrafficStats trafficStats) {
+		if (trafficStats == null) {
+			trafficStats = tgVoip.getTrafficStats();
+		}
 		final long wifiSentDiff = trafficStats.bytesSentWifi - (prevTrafficStats != null ? prevTrafficStats.bytesSentWifi : 0);
 		final long wifiRecvdDiff = trafficStats.bytesReceivedWifi - (prevTrafficStats != null ? prevTrafficStats.bytesReceivedWifi : 0);
 		final long mobileSentDiff = trafficStats.bytesSentMobile - (prevTrafficStats != null ? prevTrafficStats.bytesSentMobile : 0);
@@ -1323,6 +1336,10 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		return am.isBluetoothScoOn();
 	}
 
+	public boolean isHeadsetPlugged() {
+		return isHeadsetPlugged;
+	}
+
 	public void onMediaStateUpdated(int audioState, int videoState) {
 		AndroidUtilities.runOnUIThread(() -> {
 			currentAudioState = audioState;
@@ -1494,7 +1511,7 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		}
 		// some non-Google devices don't implement the ConnectionService API correctly so, sadly,
 		// we'll have to whitelist only a handful of known-compatible devices for now
-		return "angler".equals(Build.PRODUCT)            // Nexus 6P
+		return false;/*"angler".equals(Build.PRODUCT)            // Nexus 6P
 				|| "bullhead".equals(Build.PRODUCT)        // Nexus 5X
 				|| "sailfish".equals(Build.PRODUCT)        // Pixel
 				|| "marlin".equals(Build.PRODUCT)        // Pixel XL
@@ -1502,7 +1519,7 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 				|| "taimen".equals(Build.PRODUCT)        // Pixel 2 XL
 				|| "blueline".equals(Build.PRODUCT)        // Pixel 3
 				|| "crosshatch".equals(Build.PRODUCT)    // Pixel 3 XL
-				|| MessagesController.getGlobalMainSettings().getBoolean("dbg_force_connection_service", false);
+				|| MessagesController.getGlobalMainSettings().getBoolean("dbg_force_connection_service", false);*/
 	}
 
 	public interface StateListener {
@@ -1586,7 +1603,7 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		}
 	}
 
-	public class SharedUIParams {
+	public static class SharedUIParams {
 		public boolean tapToVideoTooltipWasShowed;
 		public boolean cameraAlertWasShowed;
 		public boolean wasVideoCall;
