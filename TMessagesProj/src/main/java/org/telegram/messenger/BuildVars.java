@@ -1,9 +1,9 @@
 /*
- * This is the source code of Telegram for Android v. 5.x.x.
+ * This is the source code of Telegram for Android v. 7.x.x.
  * It is licensed under GNU GPL v. 2 or later.
  * You should have received a copy of the license in this archive (see LICENSE).
  *
- * Copyright Nikolai Kudashov, 2013-2018.
+ * Copyright Nikolai Kudashov, 2013-2020.
  */
 
 package org.telegram.messenger;
@@ -19,8 +19,8 @@ public class BuildVars {
     public static boolean USE_CLOUD_STRINGS = true;
     public static boolean CHECK_UPDATES = false;
     public static boolean TON_WALLET_STANDALONE = false;
-    public static int BUILD_VERSION = 2065;
-    public static String BUILD_VERSION_STRING = "7.0.0";
+    public static int BUILD_VERSION = 2090;
+    public static String BUILD_VERSION_STRING = "7.1.0";
     public static int APP_ID = 324507;
     public static String APP_HASH = "8b18e01437686393a6ab21d1d58fd3ae";
 
