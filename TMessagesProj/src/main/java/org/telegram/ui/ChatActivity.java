@@ -16663,7 +16663,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 break;
             }
             case 992: {
-                CatogramConfig.INSTANCE.getKangBridge().prepareKang(selectedObject.getDocument());
+                //CatogramConfig.INSTANCE.getKangBridge().prepareKang(selectedObject.getDocument());
                 break;
             }
             case 991: {
