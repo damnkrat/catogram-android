@@ -1953,7 +1953,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                 loadingPlaylist = true;
                 ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) -> {
                     AndroidUtilities.runOnUIThread(() -> {
-                        if (playlistClassGuid != finalPlaylistGuid || playlistGlobalSearchParams == null) {
+                        if (playlistClassGuid != finalPlaylistGuid || playlistGlobalSearchParams == null || playingMessageObject == null) {
                             return;
                         }
                         if (error != null) {
