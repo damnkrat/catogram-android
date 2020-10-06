@@ -195,4 +195,5 @@
 
     <string name="CG_HQVoice">HQ-запись голосовых сообщений</string>
     <string name="CG_HQVoice_Desc">Может быть нестабильно. Также потребляет больше данных.</string>
+    <string name="ActionBarTitle">Чаты</string>
 </resources>
