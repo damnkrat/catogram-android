@@ -196,4 +196,6 @@
     <string name="CG_HQVoice">HQ-запись голосовых сообщений</string>
     <string name="CG_HQVoice_Desc">Может быть нестабильно. Также потребляет больше данных.</string>
     <string name="ActionBarTitle">Чаты</string>
+    <string name="CG_ArchiveOnPull">Архив при раскрытии</string>
+    <string name="CG_ArchiveOnPull_Desc">Автоматически открывать архив при раскрытии в главном меню</string>
 </resources>
