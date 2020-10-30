@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.google.android.exoplayer2.util.Log
 import org.telegram.messenger.ApplicationLoader
 import org.telegram.messenger.MessagesController
+import ua.itaysonlab.CatogramInit
 import ua.itaysonlab.catogram.preferences.ktx.boolean
 import ua.itaysonlab.catogram.preferences.ktx.int
 import ua.itaysonlab.catogram.stickerkang.KangBridge
@@ -80,6 +81,7 @@ object CatogramConfig {
     lateinit var kangBridge: KangBridge
 
     init {
+        CatogramInit.init(ApplicationLoader.applicationContext)
         CatogramToasts.init(sharedPreferences)
         kangBridge = KangBridge()
     }
