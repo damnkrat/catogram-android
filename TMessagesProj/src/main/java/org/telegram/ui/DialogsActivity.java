@@ -4305,7 +4305,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private boolean hasHiddenArchive() {
-        return !onlySelect && initialDialogsType == 0 && folderId == 0 && getMessagesController().hasHiddenArchive();
+        return folderId == 0 && getMessagesController().hasHiddenArchive();
     }
 
     private boolean waitingForDialogsAnimationEnd(ViewPage viewPage) {
