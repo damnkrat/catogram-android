@@ -39,7 +39,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
         category(LocaleController.getString("AS_Filters_Header", R.string.AS_Filters_Header)) {
             switch {
                 title = LocaleController.getString("CG_NewTabs_NoCounter", R.string.CG_NewTabs_NoCounter)
-                divider = true
 
                 contract({
                     return@contract CatogramConfig.newTabs_noUnread
@@ -50,7 +49,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
 
             list {
                 title = LocaleController.getString("CG_TabIconMode_Title", R.string.CG_TabIconMode_Title)
-                divider = true
 
                 contract({
                     return@contract listOf(
@@ -97,7 +95,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
             switch {
                 title = LocaleController.getString("CG_SmoothKbd", R.string.CG_SmoothKbd)
                 summary = LocaleController.getString("CG_SmoothKbd_Desc", R.string.CG_SmoothKbd_Desc)
-                divider = true
 
                 contract({
                     return@contract SharedConfig.smoothKeyboard
@@ -111,7 +108,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
 
             switch {
                 title = LocaleController.getString("CG_FABLeft", R.string.CG_FABLeft)
-                divider = true
 
                 contract({
                     return@contract CatogramConfig.forceLeftFab
@@ -122,7 +118,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
 
             switch {
                 title = LocaleController.getString("CG_HideKbdOnScroll", R.string.CG_HideKbdOnScroll)
-                divider = true
 
                 contract({
                     return@contract CatogramConfig.hideKeyboardOnScroll
@@ -146,7 +141,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
             switch {
                 title = LocaleController.getString("CG_NewAvaHeader_NoEdgeTapping", R.string.CG_NewAvaHeader_NoEdgeTapping)
                 summary = LocaleController.getString("CG_NewAvaHeader_NoEdgeTapping_Desc", R.string.CG_NewAvaHeader_NoEdgeTapping_Desc)
-                divider = true
 
                 contract({
                     return@contract CatogramConfig.profiles_noEdgeTapping
@@ -158,7 +152,6 @@ class ChatsPreferencesEntry : BasePreferencesEntry {
             switch {
                 title = LocaleController.getString("CG_NewAvaHeader_OpenOnTap", R.string.CG_NewAvaHeader_OpenOnTap)
                 summary = LocaleController.getString("CG_NewAvaHeader_OpenOnTap_Desc", R.string.CG_NewAvaHeader_OpenOnTap_Desc)
-                divider = true
 
                 contract({
                     return@contract CatogramConfig.profiles_openOnTap
