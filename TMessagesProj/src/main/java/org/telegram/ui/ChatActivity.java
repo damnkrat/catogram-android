@@ -227,6 +227,7 @@ import java.util.regex.Pattern;
 
 import kotlin.Unit;
 import ua.itaysonlab.catogram.CGControversive;
+import ua.itaysonlab.catogram.CGFeatureHooks;
 import ua.itaysonlab.catogram.CatogramConfig;
 import ua.itaysonlab.catogram.message_ctx_menu.AirExtras;
 import ua.itaysonlab.catogram.message_ctx_menu.CupertinoExtras;
@@ -19906,6 +19907,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
 
                     @Override
                     public void didPressSideButton(ChatMessageCell cell) {
+                        // CG-TODO: Side button
                         if (getParentActivity() == null) {
                             return;
                         }
@@ -20007,6 +20009,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     @Override
                     public boolean didLongPressUserAvatar(ChatMessageCell cell, TLRPC.User user, float touchX, float touchY) {
                         if (isAvatarPreviewerEnabled()) {
+                            // CG-TODO: Advanced ban/promote
                             final boolean enableMention = currentChat != null && (bottomOverlayChat == null || bottomOverlayChat.getVisibility() != View.VISIBLE) && (bottomOverlay == null || bottomOverlay.getVisibility() != View.VISIBLE);
                             final AvatarPreviewer.MenuItem[] menuItems = new AvatarPreviewer.MenuItem[2 + (enableMention ? 1 : 0)];
                             menuItems[0] = AvatarPreviewer.MenuItem.OPEN_PROFILE;
@@ -20764,6 +20767,8 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             chatListItemAniamtor.onGreetingStickerTransition(holder, greetingsViewContainer);
                         }
                     }
+
+                    CGFeatureHooks.hookHideWhenBlocked(messageCell, ChatActivity.this);
                 } else if (view instanceof ChatActionCell) {
                     ChatActionCell actionCell = (ChatActionCell) view;
                     actionCell.setMessageObject(message);

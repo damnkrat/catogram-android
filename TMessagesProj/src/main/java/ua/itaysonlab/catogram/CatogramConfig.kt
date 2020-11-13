@@ -68,6 +68,8 @@ object CatogramConfig {
     var hqVoice by sharedPreferences.boolean("cg_hq", false)
 
     var iconReplacement by sharedPreferences.int("cg_iconpack", 0)
+    var hideUserIfBlocked by sharedPreferences.boolean("cg_hide_msg_if_blocked", false)
+    var oldNotificationIcon by sharedPreferences.boolean("cg_old_notification", false)
 
     fun getIconReplacement(): BaseIconReplace {
         return when (iconReplacement) {
