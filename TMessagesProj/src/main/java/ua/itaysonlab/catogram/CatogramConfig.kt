@@ -78,8 +78,8 @@ object CatogramConfig {
 
     fun getIconReplacement(): BaseIconReplace {
         return when (iconReplacement) {
-            1 -> VkIconReplace()
-            else -> NoIconReplace()
+            1 -> NoIconReplace()
+            else -> VkIconReplace()
         }
     }
 
