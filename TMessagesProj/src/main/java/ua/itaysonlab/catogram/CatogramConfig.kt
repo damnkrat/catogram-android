@@ -5,7 +5,6 @@ import android.content.SharedPreferences
 import com.google.android.exoplayer2.util.Log
 import org.telegram.messenger.ApplicationLoader
 import org.telegram.messenger.MessagesController
-import ua.itaysonlab.CatogramInit
 import ua.itaysonlab.catogram.preferences.ktx.boolean
 import ua.itaysonlab.catogram.preferences.ktx.int
 import ua.itaysonlab.catogram.stickerkang.KangBridge
@@ -57,10 +56,8 @@ object CatogramConfig {
     var archiveOnPull by sharedPreferences.boolean("cg_archonpull", true)
     var syncPins by sharedPreferences.boolean("cg_syncpins", false)
     var rearCam by sharedPreferences.boolean("cg_rearcam", false)
-    var useCupertinoLib by sharedPreferences.boolean("advanced_cupertino", false)
     var useTgxMenuSlide by sharedPreferences.boolean("advanced_tgxslide", false)
     var useTgxMenuSlideSheet by sharedPreferences.boolean("advanced_tgxslide_sheet", false)
-    var useAirUiPopup by sharedPreferences.boolean("advanced_airui", false)
 
     var forwardNoAuthorship by sharedPreferences.boolean("cg_forward_no_authorship", false)
     var msgForwardDate by sharedPreferences.boolean("cg_msg_fwd_date", false)
@@ -88,7 +85,6 @@ object CatogramConfig {
     lateinit var kangBridge: KangBridge
 
     init {
-        CatogramInit.init(ApplicationLoader.applicationContext)
         CatogramToasts.init(sharedPreferences)
         kangBridge = KangBridge()
     }

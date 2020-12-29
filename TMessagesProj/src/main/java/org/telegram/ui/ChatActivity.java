@@ -234,8 +234,6 @@ import kotlin.Unit;
 import ua.itaysonlab.catogram.CGControversive;
 import ua.itaysonlab.catogram.CGFeatureHooks;
 import ua.itaysonlab.catogram.CatogramConfig;
-import ua.itaysonlab.catogram.message_ctx_menu.AirExtras;
-import ua.itaysonlab.catogram.message_ctx_menu.CupertinoExtras;
 import ua.itaysonlab.catogram.message_ctx_menu.TgxExtras;
 import ua.itaysonlab.catogram.translate.TranslateAPI;
 import ua.itaysonlab.catogram.ui.CatogramToasts;
@@ -18258,11 +18256,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             options.add(991);
             icons.add(R.drawable.menu_saved_cg);
 
-            if (CatogramConfig.INSTANCE.getUseCupertinoLib()) {
-                CupertinoExtras.initViewHolder(options, items, icons, getParentActivity(), chatListView, getParentActivity().findViewById(android.R.id.content), chatListView.getChildViewHolder(v), message.isOutOwner(), message.needDrawAvatar(), this::processSelectedOption);
-                return;
-            }
-
             if (CatogramConfig.INSTANCE.getUseTgxMenuSlide()) {
                 AndroidUtilities.hideKeyboard(getParentActivity().findViewById(android.R.id.content));
                 TgxExtras.createSlideMenu(options, items, icons, getParentActivity(), (id) -> {
@@ -18278,14 +18271,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     this.processSelectedOption(id);
                     return Unit.INSTANCE;
                 }).show(((AppCompatActivity) getParentActivity()).getSupportFragmentManager(), null);
-                return;
-            }
-
-            if (CatogramConfig.INSTANCE.getUseAirUiPopup()) {
-                AirExtras.showAirMenu(options, items, icons, getParentActivity(), v, (id) -> {
-                    this.processSelectedOption(id);
-                    return Unit.INSTANCE;
-                });
                 return;
             }
 
